@@ -72,16 +72,20 @@ func (eh EmailHandler) GetEmail(w http.ResponseWriter, r *http.Request) {
 		host: "localhost",
 		port: "4080",
 	}
+	//w.Header().Set("Access-Control-Allow-Origin", "*")
+	//w.Header().Set("Access-Control-Allow-Methods", "POST,GET,OPTIONS, PUT, DELETE")
+
+	//w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
 	index := r.URL.Query().Get("index")
 
-	pageStr := r.URL.Query().Get("page")
-	fmt.Println(pageStr)
+	page := r.URL.Query().Get("page")
 	url := fmt.Sprintf("http://%s:%s/api/%s/_search", c.host, c.port, index)
 	fmt.Println(url)
 	req, err := http.NewRequest(
 		"POST",
 		url,
-		strings.NewReader(fmt.Sprintf(string(query), "10")),
+		strings.NewReader(fmt.Sprintf(string(query), page)),
 	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -123,7 +127,7 @@ func (eh EmailHandler) GetEmail(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err, "this")
 	}
-	fmt.Println(res.Hits.Hits)
+	//fmt.Println(res.Hits.Hits)
 	//fmt.Println(string(body))
 	json.NewEncoder(w).Encode(res.Hits.Hits)
 }
