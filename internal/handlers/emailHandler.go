@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -39,38 +38,51 @@ type Response struct {
 }
 
 type Hit struct {
- 	Index    string                 `json:"_index"`
-	Type     string                 `json:"_type"`
-	Id       string                 `json:"_id"`
-	Score    float64                `json:"_score"`
-	Timestamp string                 `json:"@timestamp"`
-	Source    map[string]interface{} `json:"_source"`
+	Index     string  `json:"_index"`
+	Type      string  `json:"_type"`
+	Id        string  `json:"_id"`
+	Score     float64 `json:"_score"`
+	Timestamp string  `json:"@timestamp"`
+	Source    Source  `json:"_source"`
 }
 
 type Source struct {
-	Email Email `json:"email"`
+	Email     Email  `json:"email"`
+	Timestamp string `json:"@timestamp"`
+	Path      string `json:"path"`
 }
 
 type EmailHandler struct {
 }
 
+type Config struct {
+	host string
+	port string
+}
+
 func (eh EmailHandler) GetEmail(w http.ResponseWriter, r *http.Request) {
 
-	query := `{
+	query := []byte(`{
 	    "search_type": "matchall",
 	    "from": 0,
-	    "max_results": 20,
+	    "max_results": %s,
 	    "_source": []
-	}`
-	host := "localhost"
-	port := "4080"
-	index := "foo2024"
+	}`)
+	c := Config{
+		host: "localhost",
+		port: "4080",
+	}
+	index := r.URL.Query().Get("index")
 
+	pageStr := r.URL.Query().Get("page")
+	fmt.Println(pageStr)
+	url := fmt.Sprintf("http://%s:%s/api/%s/_search", c.host, c.port, index)
+	fmt.Println(url)
 	req, err := http.NewRequest(
-        "POST", 
-        fmt.Sprintf("http://%s:%s/api/%s/_search", host, port, index), 
-        strings.NewReader(query),
-    )
+		"POST",
+		url,
+		strings.NewReader(fmt.Sprintf(string(query), "10")),
+	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Fatal(err)
@@ -78,25 +90,23 @@ func (eh EmailHandler) GetEmail(w http.ResponseWriter, r *http.Request) {
 	req.SetBasicAuth("admin", "Complexpass#123")
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(
-        "User-Agent",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36",
-    )
+		"User-Agent",
+		"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36",
+	)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Fatal(err)
 	}
-		
+
 	log.Println(resp.StatusCode)
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
-	
-	hits := Response{}
-	//vals := map[string]string{}
+
 	var res struct {
 		Hits struct {
 			Hits []Hit `json:"hits"`
@@ -107,28 +117,13 @@ func (eh EmailHandler) GetEmail(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	
-    file, err := os.Create("output.txt")
-    if err != nil {
-        log.Fatal(err, " error creating the file")
-    }
 
-    defer func (){
-        resp.Body.Close()
-        file.Close()
-    }()
+	defer resp.Body.Close()
 
-
-	json.NewDecoder(r.Body).Decode(&hits)
-	//err = json.Unmarshal(body, &vals)
 	if err != nil {
 		log.Fatal(err, "this")
 	}
-	fmt.Println(res.Hits.Hits[0].Source["email"])
+	fmt.Println(res.Hits.Hits)
 	//fmt.Println(string(body))
-    _, err = fmt.Fprintf(file, string(body))
-
-    if err != nil {
-        fmt.Println("error writing into the file")
-    }
+	json.NewEncoder(w).Encode(res.Hits.Hits)
 }
