@@ -10,24 +10,24 @@ import (
 )
 
 type Email struct {
-	MessageID               string   `json:"Message-ID"`
-	Date                    string   `json:"Date"`
-	From                    string   `json:"From"`
-	To                      []string `json:"To"`
-	CC                      []string `json:"CC"`
-	BCC                     []string `json:"BCC"`
-	Subject                 string   `json:"Subject"`
-	MimeVersion             string   `json:"Mime-Version"`
-	ContentType             string   `json:"Content-Type"`
-	ContentTransferEncoding string   `json:"Content-Transfer-Encoding"`
-	XFrom                   string   `json:"X-From"`
-	XTo                     []string `json:"X-To"`
-	Xcc                     []string `json:"X-cc"`
-	Xbcc                    []string `json:"X-bcc"`
-	XFolder                 string   `json:"X-Folder"`
-	XOrigin                 string   `json:"X-Origin"`
-	XFileName               string   `json:"X-FileName"`
-	Body                    string   `json:"Body"`
+	MessageID               string   `json:"messageId"`
+	Date                    string   `json:"date"`
+	From                    string   `json:"from"`
+	To                      []string `json:"to"`
+	CC                      []string `json:"cc"`
+	BCC                     []string `json:"bcc"`
+	Subject                 string   `json:"subject"`
+	MimeVersion             string   `json:"mimeVersion"`
+	ContentType             string   `json:"contentType"`
+	ContentTransferEncoding string   `json:"contentTransferEncoding"`
+	XFrom                   string   `json:"xFrom"`
+	XTo                     []string `json:"xTo"`
+	Xcc                     []string `json:"xcc"`
+	Xbcc                    []string `json:"xbcc"`
+	XFolder                 string   `json:"xFolder"`
+	XOrigin                 string   `json:"xOrigin"`
+	XFileName               string   `json:"xFileName"`
+	Body                    string   `json:"body"`
 }
 
 type EmailResponse struct {
@@ -72,16 +72,10 @@ func (eh EmailHandler) GetEmail(w http.ResponseWriter, r *http.Request) {
 		host: "localhost",
 		port: "4080",
 	}
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
-	//w.Header().Set("Access-Control-Allow-Methods", "POST,GET,OPTIONS, PUT, DELETE")
-
-	//w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-
 	index := r.URL.Query().Get("index")
-
 	page := r.URL.Query().Get("page")
 	url := fmt.Sprintf("http://%s:%s/api/%s/_search", c.host, c.port, index)
-	fmt.Println(url)
+
 	req, err := http.NewRequest(
 		"POST",
 		url,
@@ -91,6 +85,7 @@ func (eh EmailHandler) GetEmail(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Fatal(err)
 	}
+
 	req.SetBasicAuth("admin", "Complexpass#123")
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(
