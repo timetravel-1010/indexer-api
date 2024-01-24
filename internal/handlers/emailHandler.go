@@ -30,6 +30,10 @@ type Email struct {
 	Body                    string   `json:"body"`
 }
 
+type SearchByTermRequest struct {
+	Term string `json:"term"`
+}
+
 type EmailResponse struct {
 }
 
@@ -60,6 +64,85 @@ type Config struct {
 	port string
 }
 
+var c Config = Config{
+	host: "localhost",
+	port: "4080",
+}
+
+func (eh EmailHandler) SearchByTerm(w http.ResponseWriter, r *http.Request) {
+	var query []byte = []byte(`{
+    "search_type": "match",
+    "query": {
+        "term": %s,
+        "field": "_all"
+    },
+    "sort_fields": ["-@timestamp"],
+    "from": 0,
+    "max_results": %s,
+    "_source": [ ]
+}`)
+	var index string = r.URL.Query().Get("index")
+	var sbt SearchByTermRequest
+	json.NewDecoder(r.Body).Decode(&sbt)
+	fmt.Println("sbt:", sbt)
+	var numResults string = r.URL.Query().Get("page")
+	if numResults == "" {
+		numResults = "_all"
+	}
+	url := fmt.Sprintf("http://%s:%s/api/%s/_search", c.host, c.port, index)
+
+	req, err := http.NewRequest(
+		"POST",
+		url,
+		strings.NewReader(fmt.Sprintf(string(query), sbt.Term, numResults)),
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Fatal(err)
+	}
+
+	req.SetBasicAuth("admin", "Complexpass#123")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(
+		"User-Agent",
+		"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36",
+	)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Fatal(err)
+	}
+
+	log.Println(resp.StatusCode)
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var res struct {
+		Hits struct {
+			Hits []Hit `json:"hits"`
+		} `json:"hits"`
+	}
+	ress := []res{}
+	err = json.Unmarshal(body, &ress)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+
+	if err != nil {
+		log.Fatal(err, "this")
+	}
+	//fmt.Println(res.Hits.Hits)
+	//fmt.Println(string(body))
+	json.NewEncoder(w).Encode(res.Hits.Hits)
+
+}
+
 func (eh EmailHandler) GetEmail(w http.ResponseWriter, r *http.Request) {
 
 	query := []byte(`{
@@ -68,10 +151,6 @@ func (eh EmailHandler) GetEmail(w http.ResponseWriter, r *http.Request) {
 	    "max_results": %s,
 	    "_source": []
 	}`)
-	c := Config{
-		host: "localhost",
-		port: "4080",
-	}
 	index := r.URL.Query().Get("index")
 	page := r.URL.Query().Get("page")
 	url := fmt.Sprintf("http://%s:%s/api/%s/_search", c.host, c.port, index)

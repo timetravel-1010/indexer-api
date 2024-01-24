@@ -1,9 +1,7 @@
 package server
 
 import (
-	"encoding/json"
 	"indexer-api/internal/handlers"
-	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -26,12 +24,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
 
-	r.Get("/", s.HelloWorldHandler)
-
-	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("pong"))
-	})
-
 	r.Mount("/email", EmailRoutes())
 
 	return r
@@ -42,18 +34,7 @@ func EmailRoutes() chi.Router {
 	emailHandler := handlers.EmailHandler{}
 
 	r.Get("/", emailHandler.GetEmail)
+	r.Get("/search", emailHandler.SearchByTerm)
 
 	return r
-}
-
-func (s *Server) HelloWorldHandler(w http.ResponseWriter, r *http.Request) {
-	resp := make(map[string]string)
-	resp["message"] = "Hello World"
-
-	jsonResp, err := json.Marshal(resp)
-	if err != nil {
-		log.Fatalf("error handling JSON marshal. Err: %v", err)
-	}
-
-	_, _ = w.Write(jsonResp)
 }
