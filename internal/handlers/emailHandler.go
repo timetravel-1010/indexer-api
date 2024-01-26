@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -60,48 +61,59 @@ type EmailHandler struct {
 }
 
 type Config struct {
-	host string
-	port string
+	host     string
+	port     string
+	username string
+	password string
 }
 
 var c Config = Config{
-	host: "localhost",
-	port: "4080",
+	host:     "localhost",
+	port:     "4080",
+	username: "admin",
+	password: "Complexpass#123",
 }
 
 func (eh EmailHandler) SearchByTerm(w http.ResponseWriter, r *http.Request) {
 	var query []byte = []byte(`{
     "search_type": "match",
     "query": {
-        "term": %s,
+        "term": "%s",
         "field": "_all"
     },
     "sort_fields": ["-@timestamp"],
     "from": 0,
-    "max_results": %s,
+    "max_results": %d,
     "_source": [ ]
 }`)
-	var index string = r.URL.Query().Get("index")
+	index := r.URL.Query().Get("index")
 	var sbt SearchByTermRequest
 	json.NewDecoder(r.Body).Decode(&sbt)
-	fmt.Println("sbt:", sbt)
-	var numResults string = r.URL.Query().Get("page")
-	if numResults == "" {
-		numResults = "_all"
+	page := r.URL.Query().Get("page")
+
+	numResults := 10
+	if page != "" {
+		n, err := strconv.Atoi(page)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Fatal(err)
+		}
+		numResults = n
 	}
 	url := fmt.Sprintf("http://%s:%s/api/%s/_search", c.host, c.port, index)
+	s := fmt.Sprintf(string(query), sbt.Term, numResults)
 
 	req, err := http.NewRequest(
 		"POST",
 		url,
-		strings.NewReader(fmt.Sprintf(string(query), sbt.Term, numResults)),
+		strings.NewReader(s),
 	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Fatal(err)
 	}
 
-	req.SetBasicAuth("admin", "Complexpass#123")
+	req.SetBasicAuth(c.username, c.password)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(
 		"User-Agent",
@@ -118,6 +130,7 @@ func (eh EmailHandler) SearchByTerm(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Fatal(err)
 	}
 
@@ -126,21 +139,15 @@ func (eh EmailHandler) SearchByTerm(w http.ResponseWriter, r *http.Request) {
 			Hits []Hit `json:"hits"`
 		} `json:"hits"`
 	}
-	ress := []res{}
-	err = json.Unmarshal(body, &ress)
+	err = json.Unmarshal(body, &res)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Fatal(err)
 	}
 
 	defer resp.Body.Close()
 
-	if err != nil {
-		log.Fatal(err, "this")
-	}
-	//fmt.Println(res.Hits.Hits)
-	//fmt.Println(string(body))
 	json.NewEncoder(w).Encode(res.Hits.Hits)
-
 }
 
 func (eh EmailHandler) GetEmail(w http.ResponseWriter, r *http.Request) {
