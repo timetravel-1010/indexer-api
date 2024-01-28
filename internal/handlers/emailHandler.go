@@ -31,10 +31,6 @@ type Email struct {
 	Body                    string   `json:"body"`
 }
 
-type SearchByTermRequest struct {
-	Term string `json:"term"`
-}
-
 type EmailResponse struct {
 }
 
@@ -87,9 +83,8 @@ func (eh EmailHandler) SearchByTerm(w http.ResponseWriter, r *http.Request) {
     "_source": [ ]
 }`)
 	index := r.URL.Query().Get("index")
-	var sbt SearchByTermRequest
-	json.NewDecoder(r.Body).Decode(&sbt)
 	page := r.URL.Query().Get("page")
+	term := r.URL.Query().Get("term")
 
 	numResults := 10
 	if page != "" {
@@ -101,7 +96,7 @@ func (eh EmailHandler) SearchByTerm(w http.ResponseWriter, r *http.Request) {
 		numResults = n
 	}
 	url := fmt.Sprintf("http://%s:%s/api/%s/_search", c.host, c.port, index)
-	s := fmt.Sprintf(string(query), sbt.Term, numResults)
+	s := fmt.Sprintf(string(query), term, numResults)
 
 	req, err := http.NewRequest(
 		"POST",
@@ -130,7 +125,6 @@ func (eh EmailHandler) SearchByTerm(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Fatal(err)
 	}
 
