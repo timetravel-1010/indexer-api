@@ -1,7 +1,7 @@
 package server
 
 import (
-	"indexer-api/internal/handlers"
+	"github.com/timetravel-1010/indexer-api/internal/handlers"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -33,7 +33,7 @@ func EmailRoutes() chi.Router {
 	r := chi.NewRouter()
 	emailHandler := handlers.EmailHandler{}
 
-	r.Get("/", emailHandler.GetEmail)
+	r.Get("/", emailHandler.GetEmails)
 	r.Get("/search", emailHandler.SearchByTerm)
 
 	return r

@@ -1,4 +1,4 @@
-module indexer-api
+module github.com/timetravel-1010/indexer-api
 
 go 1.20
 
