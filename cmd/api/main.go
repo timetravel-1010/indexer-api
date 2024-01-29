@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"indexer-api/internal/server"
+	"github.com/timetravel-1010/indexer-api/internal/server"
 )
 
 func main() {
