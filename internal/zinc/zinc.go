@@ -25,6 +25,10 @@ type ZincResponse struct {
 	} `json:"hits"`
 }
 
+const (
+	DEFAULT_PAGE_SIZE = 10
+)
+
 // DoZincRequest
 func DoZincRequest(r *http.Request, query string, c Config) (*ZincResponse, error) {
 	log.Println("url query:", r.URL.Query())
