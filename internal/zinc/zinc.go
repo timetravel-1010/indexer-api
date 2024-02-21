@@ -31,7 +31,6 @@ const (
 
 // DoZincRequest
 func DoZincRequest(r *http.Request, query string, c Config) (*ZincResponse, error) {
-	log.Println("url query:", r.URL.Query())
 
 	index := r.URL.Query().Get("index")
 	url := fmt.Sprintf("http://%s:%s/api/%s/_search", c.Host, c.Port, index)
