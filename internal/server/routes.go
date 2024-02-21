@@ -24,7 +24,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
 
-	r.Mount("/email", EmailRoutes())
+	r.Mount("/emails", EmailRoutes())
 
 	return r
 }
